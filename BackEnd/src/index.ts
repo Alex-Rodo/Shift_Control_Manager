@@ -1,22 +1,30 @@
 import express from "express";
-import http from "http";
+import { createServer} from "http";
 import cors from "cors";
+import { Server } from "socket.io";
 import turnsRouter from "./routes/turns";
 import { initSocket } from "./socket";
 
-const app = express();
-const server = http.createServer(app);
+const app = express()
+app.use(cors())
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
+const server = createServer(app)
 
-// Rutas
-app.use("/api/turns", turnsRouter);
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173', // URL de tu frontend
+    methods: ['GET', 'POST']
+  }
+})
 
-// Inicializar Socket.IO
-initSocket(server);
+io.on('connection', (socket) => {
+  console.log('🟢 Cliente conectado:', socket.id)
+  
+  socket.on('disconnect', () => {
+    console.log('🔴 Cliente desconectado:', socket.id)
+  })
+})
 
-// Iniciar servidor HTTP
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`🚀 Servidor corriendo en puerto ${PORT}`));
+server.listen(4000, () => {
+  console.log('Servidor escuchando en http://localhost:4000')
+})

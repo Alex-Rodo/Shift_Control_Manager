@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import io from 'socket.io-client';
+import socket from '../socket';
+
 
 type Turn = {
   id: string;
@@ -9,7 +10,6 @@ type Turn = {
   scheduledAt?: string | null;
   status: 'waiting' | 'called' | 'completed' | 'skipped';
 };
-
 export default function WaitingRoomDisplay({
   wsUrl,
   specialtyFilter = null,
@@ -20,7 +20,7 @@ export default function WaitingRoomDisplay({
   title?: string;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [connected, setConnected] = useState(false);
+  const [connected, setConnected] = useState(true);
 
   const resolvedWsUrl =
     wsUrl ??
@@ -29,11 +29,6 @@ export default function WaitingRoomDisplay({
     'http://localhost:4000';
 
   useEffect(() => {
-    const socket = io(resolvedWsUrl, {
-      transports: ['websocket'],
-      reconnectionAttempts: 5,
-    });
-
     socket.on('connect', () => {
       setConnected(true);
       socket.emit('subscribe', { channel: specialtyFilter || 'global' });
