@@ -1,37 +1,61 @@
 import React, { useState } from 'react';
+import socket from '../socket';
+import e from 'cors';
 
 export default function ReceptionPanel() {
-  const [name, setName] = useState('');
+  const [patientName, setPatientName] = useState('');
   const [specialty, setSpecialty] = useState('Medicina General');
   const [scheduledAt, setScheduledAt] = useState<string>('');
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name) return alert('Nombre requerido');
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/turns`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patientName: name, specialty, scheduledAt: scheduledAt || null })
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      alert('Error: ' + (err?.error || res.statusText));
-    } else {
-      setName('');
-      alert('Turno creado');
-    }
-  }
+  const handleCreateTurn = () => {
+    if (!patientName) return alert("Por favor ingresar el nombre del paciente");
+
+    const newTurn = {
+      id: Date.now().toString(),
+      patientName,
+      specialty,
+      consultRoom: null,
+      scheduledAt,
+      status: "waiting",
+    };
+
+    socket.emit("queue.add", newTurn);
+    setPatientName("");
+    setScheduledAt("");
+  };
 
   return (
-    <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <input placeholder="Nombre paciente" value={name} onChange={e => setName(e.target.value)} />
-      <select value={specialty} onChange={e => setSpecialty(e.target.value)}>
-        <option>Medicina General</option>
-        <option>Pediatría</option>
-        <option>Odontología</option>
+    <div className="p-4 bg-white rounded-2xl shadow">
+      <h2 className="text-lg font-semibold mb-2">LINEA DE FRENTE</h2>
+
+      <input
+      type='text'
+      placeholder='Nombre paciente'
+      value={patientName}
+      onChange={(e) => setPatientName(e.target.value)}
+      className='border p-2 rounded w-full mb-2'
+      />
+
+      <select
+      value={specialty}
+      onChange={(e) => setSpecialty(e.target.value)}
+      className='border p-2 rounded w-full mb-2'
+      >
+        <option value="Mamografia"></option>
+        <option value="Pediatria"></option>
+        <option value="Odontologia"></option>
       </select>
-      <input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
-      <button type="submit">Crear turno</button>
-    </form>
+
+      <input 
+      type="datetime-local"
+      value={scheduledAt}
+      onChange={(e) => setScheduledAt(e.target.value)}
+      className='border p-2 rounded w-full mb-2' 
+      />
+
+      <button onClick={handleCreateTurn} className='bg-blue-600 text-white px-4 py-2 rounded w-full'>
+        Crear Turno
+      </button>
+    </div>
   );
 }

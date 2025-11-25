@@ -1,7 +1,26 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import socket from '../socket';
+import { snapshot } from 'node:test';
+import { channel } from 'diagnostics_channel';
+
+type Turn = {
+  id: string;
+  patientName: string;
+  specialty: string;
+  consultRoom: string | null;
+  status: "waiting" | "called" | "completed" | "skipped";
+};
 
 export default function DoctorPanel({ specialty }: { specialty: string }) {
+  const [turns, setTurns] = useState<Turn[]>([]);
   const [lastCalled, setLastCalled] = useState<string | null>(null);
+
+  useEffect(()=> {
+    socket.emit("suscribe", { channel: specialty });
+    socket.on("queue.snapshot", (snapshot: Turn[]) => {
+      setTurns(snapshot.filter((t) => t.specialty));
+    })
+  })
 
   async function callNext() {
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/turns/next`, {
