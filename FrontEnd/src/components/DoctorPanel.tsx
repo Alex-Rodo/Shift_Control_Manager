@@ -15,33 +15,54 @@ export default function DoctorPanel({ specialty }: { specialty: string }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [lastCalled, setLastCalled] = useState<string | null>(null);
 
-  useEffect(()=> {
+  useEffect(() => {
     socket.emit("suscribe", { channel: specialty });
     socket.on("queue.snapshot", (snapshot: Turn[]) => {
       setTurns(snapshot.filter((t) => t.specialty));
-    })
-  })
-
-  async function callNext() {
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'}/api/turns/next`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ specialty })
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'No hay más turnos' }));
-      alert(err.error || 'Error');
-      return;
-    }
-    const t = await res.json();
-    setLastCalled(t.patient_name || t.patientName || t.patientName);
-    alert(`Llamando a ${t.patient_name || t.patientName}`);
-  }
+
+    socket.on("queue.add", (turn: Turn) => {
+      if (turn.specialty === specialty) setTurns((prev) => [...prev, turn]);
+    });
+    socket.on("queue.update", (turn: Turn) => {
+      if (turn.specialty === specialty)
+        setTurns((prev) => prev.map((p) => (p.id === turn.id ? turn : p)));
+    });
+
+    socket.on("queue.remove", (id: string) =>
+      setTurns((prev) => prev.filter((p) => p.id !== id))
+    );
+
+    return () => {
+      socket.off("queue.snapshot");
+      socket.off("queue.add");
+      socket.off("queue.update");
+      socket.off("queue.remove");
+    };
+  }, [specialty]);
+
+  const callNextTurn = () => {
+    const nextTurn = turns.find((t) => t.status === "waiting");
+    if (!nextTurn) return alert("No hay turnos en espera");
+
+    const updatedTurn = { ...nextTurn, status: "called" };
+    socket.emit("queue.update", updatedTurn);
+    setLastCalled(nextTurn.patientName);
+  };
 
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <button onClick={callNext}>Llamar siguiente ({specialty})</button>
-      <div>Último llamado: {lastCalled || '—'}</div>
+    <div className='p-4 bg-white rounded-2xl shadow'>
+      <h2 className='text-lg font-semibold mb-2'>
+        Medico ({specialty})
+      </h2>
+      <button onClick={callNextTurn} className='bg-green-600 text-white px-4 py-2 rounded w-full mb-2'>
+        Llamar Siguiente Turno
+      </button>
+      <div className='text-sm text-gray-600'>
+        Ultimo Llamado: {lastCalled || "Ninguno"}
+      </div>
     </div>
   );
 }
+
+
