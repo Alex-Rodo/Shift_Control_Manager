@@ -15,7 +15,11 @@ app.use(express.json());
 
 const server = http.createServer(app);
 export const TURN_STATUS =["WAITING", "CALLED", "DONE"] as const;
-export type TurnStatus = typeof TURN_STATUS[number];
+export enum TurnStatus {
+  WAITING = "WAITING",
+  CALLED = "CALLED",
+  DONE = "DONE"
+}
 
 // ======================
 //   Servidor Socket.IO
@@ -36,7 +40,7 @@ interface Turn {
   name: string;
   specialty: string;
   createdAt: number;
-  //status: TurnStatus; 
+  status: TurnStatus; 
 }
 
 let queue: Turn[] = [];
@@ -80,7 +84,7 @@ io.on('connection', (socket) => {
       name: data.name,
       specialty: data.specialty,
       createdAt: Date.now(),
-      //status: "WAITING",
+      status: TurnStatus.WAITING,
     };
 
     queue.push(newTurn);
@@ -98,11 +102,31 @@ io.on('connection', (socket) => {
     console.log("Actualizacion de turno: ", data);
 
     const index = queue.findIndex((t) => t.id === data.id);
-    if (index !== -1) {
-      queue[index] = { ...queue[index], ...data };
+    if (index !== -1) return;
+
+    const turn = queue[index];
+    //Si se quiere llamar el turno... 
+    if (data.status === TurnStatus.CALLED) {
+      //Buscar primer turno en estado WAITING
+      const nextToCall = queue.find(t => t.status === TurnStatus.WAITING);
+      //No hay turnos en espera
+      if (!nextToCall?.id) return;
+
+      if (nextToCall.id !== turn.id) {
+        console.log("Intento de llamar un turno que NO es el siguiente");
+        socket.emit("queue.error", {
+          message: "Solo puede llamar el siguiente turno en orden."
+        });
+        return;
+      }
+    }
+
+    //Aplicar actualizacion valida
+      queue[index] = { 
+        ...queue[index], ...data,
+      };
       io.emit("queue.update", queue[index]);
       broadCastSnapshot();
-    }
   });
 
   // ==================================================

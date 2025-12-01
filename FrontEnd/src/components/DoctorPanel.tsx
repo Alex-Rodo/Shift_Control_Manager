@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import socket from '../socket';
-import { snapshot } from 'node:test';
-import { channel } from 'diagnostics_channel';
+import { TurnStatus } from "../types/TurnStatus";
 
-type Turn = {
+interface Turn {
   id: string;
   patientName: string;
   specialty: string;
-  consultRoom: string | null;
-  status: "waiting" | "called" | "completed" | "skipped";
-};
+  createdAt: number;
+  status: TurnStatus;
+}
+
 
 export default function DoctorPanel({ specialty }: { specialty: string }) {
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -42,7 +42,7 @@ export default function DoctorPanel({ specialty }: { specialty: string }) {
   }, [specialty]);
 
   const callNextTurn = () => {
-    const nextTurn = turns.find((t) => t.status === "waiting");
+    const nextTurn = turns.find((t) => t.status === TurnStatus.CALLED);
     if (!nextTurn) return alert("No hay turnos en espera");
 
     const updatedTurn = { ...nextTurn, status: "called" };
