@@ -1,109 +1,88 @@
-import React, { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import socket from '../socket';
+import { TurnStatus } from "../types/TurnStatus";
+import { Turn } from '../types/Turn';
 
-
-type Turn = {
-  id: string;
-  patientName: string;
-  specialty: string;
-  consultRoom: string | null;
-  scheduledAt?: string | null;
-  status: 'waiting' | 'called' | 'completed' | 'skipped';
-};
 export default function WaitingRoomDisplay({
-  wsUrl,
-  specialtyFilter = null,
-  title = 'Sala de Espera',
+  title,
+  specialtyFilter
 }: {
-  wsUrl?: string;
-  specialtyFilter?: string | null;
-  title?: string;
+  title: string;
+  specialtyFilter: string;
 }) {
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [connected, setConnected] = useState(true);
+  const [queue, setQueue] = useState<Turn[]>([]);
+  const [lastCalled, setLastCalled] = useState<Turn | null>(null);
 
-  const resolvedWsUrl =
-    wsUrl ??
-    (typeof process !== 'undefined' && process.env && process.env.REACT_APP_WS_URL) ??
-    (typeof window !== 'undefined' && (window as any).__REACT_APP_WS_URL) ??
-    'http://localhost:4000';
+  //Audio cuando llaman un turno
+  const audio = new Audio('/notification.mp3');
 
   useEffect(() => {
-    socket.on('connect', () => {
-      setConnected(true);
-      socket.emit('subscribe', { channel: specialtyFilter || 'global' });
+    socket.on("queue.snapshot", (data: Turn[]) => {
+      setQueue(data);
     });
 
-    socket.on('disconnect', () => setConnected(false));
+    socket.on("queue.updated", (updated: Turn) => {
+      setQueue((prev) =>
+        prev.map((t) => (t.id === updated.id ? updated : t))
+      );
 
-    socket.on('queue.snapshot', (snapshot: Turn[]) => {
-      setTurns(snapshot.filter(t => (specialtyFilter ? t.specialty === specialtyFilter : true)));
+      //Si el turno vambia a CALLED -> reproducir sonido
+      if (updated.status === TurnStatus.CALLED) {
+        setLastCalled(updated);
+        audio.play().catch(() => { });
+      }
     });
-
-    socket.on('queue.add', (t: Turn) => {
-      if (!specialtyFilter || t.specialty === specialtyFilter) setTurns(prev => [...prev, t]);
-    });
-
-    socket.on('queue.update', (t: Turn) => {
-      setTurns(prev => prev.map(p => (p.id === t.id ? t : p)));
-    });
-
-    socket.on('queue.remove', (id: string) => {
-      setTurns(prev => prev.filter(p => p.id !== id));
-    });
-
-    socket.on('connect_error', () => setConnected(false));
 
     return () => {
-      socket.disconnect();
+      socket.off("queue.snapshot");
+      socket.off("queue.updated");
     };
-  }, [resolvedWsUrl, specialtyFilter]);
+  }, []);
 
-  const topTurns = turns
-    .filter(t => t.status === 'waiting' || t.status === 'called')
-    .sort((a, b) => {
-      const aTime = a.scheduledAt || '';
-      const bTime = b.scheduledAt || '';
-      if (aTime === bTime) return 0;
-      return aTime > bTime ? 1 : -1;
-    })
-    .slice(0, 10);
+  const filteredQueue = queue.filter(
+    t => t.specialty === specialtyFilter
+  );
 
-  return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">{title}</h1>
-          <div className="text-sm">
-            <span className={`px-2 py-1 rounded ${connected ? 'bg-green-100' : 'bg-red-100'}`}>
-              {connected ? 'Conectado' : 'Desconectado'}
-            </span>
+  const waiting = filteredQueue.filter((t) => t.status === TurnStatus.WAITING);
+  const called = filteredQueue.filter((t) => t.status === TurnStatus.CALLED);
+
+  return(
+    <div className='p-4 bg-white shadow-md rounded-md'>
+      <h2 className='text-xl font-bold mb-2'>
+        {title}
+      </h2>
+      <h3 className='text-lg mb-4 text-gray-600'>
+        {specialtyFilter}
+      </h3>
+      {/* Ultimo turno atendido con numero grande */}
+      {lastCalled && (
+        <div className='mb-6 text-center'>
+          <div className='text-4xl font-extrabold text-green-600'>
+            Turno {lastCalled.turnNumber}
           </div>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {topTurns.map(turn => (
-            <div key={turn.id} className="p-4 bg-white rounded-2xl shadow-sm flex justify-between items-center">
-              <div>
-                <div className="text-xl font-semibold">{turn.patientName}</div>
-                <div className="text-sm text-gray-500">{turn.specialty} • {turn.consultRoom || 'Por asignar'}</div>
-                {turn.scheduledAt && <div className="text-xs text-gray-400">Cita: {new Date(turn.scheduledAt).toLocaleString()}</div>}
-              </div>
-              <div className="text-right">
-                <div className={`text-lg font-semibold ${turn.status === 'called' ? 'text-indigo-600' : 'text-gray-700'}`}>
-                  {turn.status.toUpperCase()}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {topTurns.length === 0 && (
-            <div className="p-6 bg-white rounded-2xl shadow-sm col-span-full text-center text-gray-600">No hay turnos en espera</div>
-          )}
+          <div className='text-xl'>
+            {lastCalled.name}
+          </div>
         </div>
+      )}
+      <h4 className='font-semibold'>
+        En Espera: 
+      </h4>
+      {waiting.map((t) => (
+        <div key={t.id} className='border p-2 mt-2 rounded'>
+            Turno {t.turnNumber} - <b>{t.name}</b>
+        </div>
+      ))}
+      <br />
 
-        <footer className="mt-6 text-xs text-gray-400">Última actualización: {new Date().toLocaleTimeString()}</footer>
-      </div>
+      <h4 className='font-semibold'>
+        Llamados:
+      </h4>
+      {called.map((t) => (
+        <div key={t.id} className='border p-2 mt-2 rounded bg-green-100'>
+            Turno: {t.turnNumber} - <b>{t.name}</b>
+        </div>
+      ))}
     </div>
   );
 }

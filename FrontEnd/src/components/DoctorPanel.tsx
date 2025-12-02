@@ -1,67 +1,63 @@
 import { useEffect, useState } from 'react';
 import socket from '../socket';
 import { TurnStatus } from "../types/TurnStatus";
-import { Turn } from "../types/Turn";
-
-interface Turn {
-  id: string;
-  patientName: string;
-  specialty: string;
-  createdAt: number;
-  status: TurnStatus;
-}
-
+import { Turn } from '../types/Turn';
 
 export default function DoctorPanel({ specialty }: { specialty: string }) {
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [lastCalled, setLastCalled] = useState<string | null>(null);
+  const [queue, setQueue] = useState<Turn[]>([]);
 
   useEffect(() => {
-    socket.emit("suscribe", { channel: specialty });
-    socket.on("queue.snapshot", (snapshot: Turn[]) => {
-      setTurns(snapshot.filter((t) => t.specialty));
+    socket.on("queue.snapshot", (data: Turn[]) => {
+      setQueue(data.filter((t) => t.specialty === specialty));
     });
-
-    socket.on("queue.add", (turn: Turn) => {
-      if (turn.specialty === specialty) setTurns((prev) => [...prev, turn]);
-    });
-    socket.on("queue.update", (turn: Turn) => {
-      if (turn.specialty === specialty)
-        setTurns((prev) => prev.map((p) => (p.id === turn.id ? turn : p)));
-    });
-
-    socket.on("queue.remove", (id: string) =>
-      setTurns((prev) => prev.filter((p) => p.id !== id))
-    );
 
     return () => {
       socket.off("queue.snapshot");
-      socket.off("queue.add");
-      socket.off("queue.update");
-      socket.off("queue.remove");
     };
   }, [specialty]);
 
-  const callNextTurn = () => {
-    const nextTurn = turns.find((t) => t.status === TurnStatus.CALLED);
-    if (!nextTurn) return alert("No hay turnos en espera");
+  const nextToCall = queue.find((t) => t.status === TurnStatus.WAITING);
 
-    const updatedTurn = { ...nextTurn, status: "called" };
-    socket.emit("queue.update", updatedTurn);
-    setLastCalled(nextTurn.patientName);
-  };
+  function callTurn(id: string) {
+    socket.emit("queue.update", { id, status: TurnStatus.CALLED });
+  }
+
+  function completeTurn(id: string) {
+    socket.emit("queue.update", { id, status: TurnStatus.DONE });
+  }
 
   return (
-    <div className='p-4 bg-white rounded-2xl shadow'>
-      <h2 className='text-lg font-semibold mb-2'>
+    <div style={{ padding: 20, border: "1px solid gray", borderRadius: 8 }}>
+      <h2>
         Medico ({specialty})
       </h2>
-      <button onClick={callNextTurn} className='bg-green-600 text-white px-4 py-2 rounded w-full mb-2'>
-        Llamar Siguiente Turno
-      </button>
-      <div className='text-sm text-gray-600'>
-        Ultimo Llamado: {lastCalled || "Ninguno"}
-      </div>
+      {
+        queue.map(t => (
+          <div key={t.id} style={{ padding: 10, borderBottom: "1px solid #ccc" }}>
+            <b>
+              {t.name}
+            </b>
+            <br />
+            Estado: {t.status}
+            <br />
+            {/* -------- BOTON LLAMAR -------- */}
+            {t.status === TurnStatus.WAITING && (
+              <button disabled={t.id !== nextToCall?.id}
+                onClick={() => callTurn(t.id)}
+                style={{ marginTop: 5 }}>
+                Llamar
+              </button>
+            )}
+
+            {/* -------- BOTON COMPLETAR -------- */}
+            {t.status === TurnStatus.CALLED && (
+              <button onClick={() => completeTurn(t.id)} style={{ marginTop: 5 }}>
+                Completar Consulta
+              </button>
+            )}
+          </div>
+        ))
+      }
     </div>
   );
 }
