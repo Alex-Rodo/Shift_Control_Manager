@@ -1,59 +1,56 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import socket from '../socket';
-import e from 'cors';
+import { TurnStatus } from "../types/TurnStatus";
 
 export default function ReceptionPanel() {
   const [patientName, setPatientName] = useState('');
   const [specialty, setSpecialty] = useState('Medicina General');
-  const [scheduledAt, setScheduledAt] = useState<string>('');
+
+  function createTurn() {
+    if (!patientName.trim()) return alert("Por favor ingresar el nombre del paciente");
+  }
 
   const handleCreateTurn = () => {
     if (!patientName) return alert("Por favor ingresar el nombre del paciente");
 
-    const newTurn = {
-      id: Date.now().toString(),
+    socket.emit("queue.add", {
       patientName,
       specialty,
-      consultRoom: null,
-      scheduledAt,
-      status: "waiting",
-    };
+      status: TurnStatus.WAITING,
+    });
 
-    socket.emit("queue.add", newTurn);
-    setPatientName("");
-    setScheduledAt("");
-  };
+    setPatientName(''); //Limpiar el campo despues de crear el turno
+  }
 
   return (
-    <div className="p-4 bg-white rounded-2xl shadow">
-      <h2 className="text-lg font-semibold mb-2">LINEA DE FRENTE</h2>
+    <div style={{ padding: 20, border: "1px solid gray", borderRadius: 8 }}>
+      <h2>Recepcion</h2>
+      <div>
+        <label>Nombre del paciente</label>
+        <input
+          value={patientName}
+          onChange={(e) => setPatientName(e.target.value)}
+          style={{ width: "100%", padding: 6, marginBottom: 10 }}
+        />
+      </div>
+      <div>
+        <label>Especialidad</label>
+        <select
+          value={specialty}
+          onChange={(e) => setSpecialty(e.target.value)}
+          style={{ width: "100%", padding: 6 }}
+        >
+          <option>Medicina General</option>
+          <option>Pediatria</option>
+          <option>Odontologia</option>
+          <option>Radiologia</option>
+        </select>
+      </div>
 
-      <input
-      type='text'
-      placeholder='Nombre paciente'
-      value={patientName}
-      onChange={(e) => setPatientName(e.target.value)}
-      className='border p-2 rounded w-full mb-2'
-      />
-
-      <select
-      value={specialty}
-      onChange={(e) => setSpecialty(e.target.value)}
-      className='border p-2 rounded w-full mb-2'
+      <button
+        onClick={createTurn}
+        style={{marginTop: 10, padding: 10, width: "100%"}}
       >
-        <option value="Mamografia"></option>
-        <option value="Pediatria"></option>
-        <option value="Odontologia"></option>
-      </select>
-
-      <input 
-      type="datetime-local"
-      value={scheduledAt}
-      onChange={(e) => setScheduledAt(e.target.value)}
-      className='border p-2 rounded w-full mb-2' 
-      />
-
-      <button onClick={handleCreateTurn} className='bg-blue-600 text-white px-4 py-2 rounded w-full'>
         Crear Turno
       </button>
     </div>

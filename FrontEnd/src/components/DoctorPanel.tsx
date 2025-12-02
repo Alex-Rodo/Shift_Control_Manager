@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import socket from '../socket';
 import { TurnStatus } from "../types/TurnStatus";
+import { Turn } from "../types/Turn";
 
 interface Turn {
   id: string;
