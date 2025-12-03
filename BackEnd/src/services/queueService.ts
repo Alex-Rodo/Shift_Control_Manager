@@ -14,7 +14,7 @@ export async function createTurn(patientName: string, specialty: string, schedul
   const res = await pool.query<TurnRow>(
     `INSERT INTO turns (patient_name, specialty, scheduled_at, consult_room) VALUES ($1,$2,$3,$4) RETURNING *`,
     [patientName, specialty, scheduledAt || null, consultRoom || null]
-  );
+  ); 
   return res.rows[0];
 }
 

@@ -14,7 +14,10 @@ app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
-export const TURN_STATUS =["WAITING", "CALLED", "DONE"] as const;
+
+// ======================
+//   ENUM Turn Status
+// ======================
 export enum TurnStatus {
   WAITING = "WAITING",
   CALLED = "CALLED",
@@ -27,23 +30,24 @@ export enum TurnStatus {
 
 const io = new Server(server, {
   cors: {
-    origin: '*', // URL de tu frontend
+    origin: '*', 
   },
 });
 
-// ===========================================
-// Memoria temporal de la cola de turnos
-// (Luego esto se puede pasar a MongoDB)
-// ===========================================
+// =============================
+//   Turno y Memoria temporal 
+// =============================
 interface Turn {
   id: string;
   name: string;
   specialty: string;
   createdAt: number;
-  status: TurnStatus; 
+  status: TurnStatus;
+  turnNumber: number;
 }
 
 let queue: Turn[] = [];
+let turnCounter = 1;
 
 // Formato recomendado: 
 // {
@@ -54,9 +58,9 @@ let queue: Turn[] = [];
 //     status: "WAITING",
 // }
 
-// ======================================
-//  Enviar Snapshot a TODOS los clients
-// ======================================
+// =================================
+//       Broadcast General
+// =================================
 
 function broadCastSnapshot() {
   io.emit("queue.snapshot", queue);
@@ -79,12 +83,13 @@ io.on('connection', (socket) => {
   socket.on("queue.add", (data) => {
     console.log("Nuevo turno recibido: ", data);
 
-    const newTurn = {
-      id: Date.now().toString(),
+    const newTurn: Turn = {
+      id: crypto.randomUUID(),
       name: data.name,
       specialty: data.specialty,
       createdAt: Date.now(),
       status: TurnStatus.WAITING,
+      turnNumber: turnCounter++,
     };
 
     queue.push(newTurn);
@@ -102,18 +107,19 @@ io.on('connection', (socket) => {
     console.log("Actualizacion de turno: ", data);
 
     const index = queue.findIndex((t) => t.id === data.id);
-    if (index !== -1) return;
+    if (index === -1) return;
 
     const turn = queue[index];
-    //Si se quiere llamar el turno... 
+
+    // Validar orden al llamar turno
     if (data.status === TurnStatus.CALLED) {
       //Buscar primer turno en estado WAITING
       const nextToCall = queue.find(t => t.status === TurnStatus.WAITING);
       //No hay turnos en espera
-      if (!nextToCall?.id) return;
+      if (!nextToCall) return;
 
       if (nextToCall.id !== turn.id) {
-        console.log("Intento de llamar un turno que NO es el siguiente");
+        console.log("Intento de llamar un turno fuera de orden");
         socket.emit("queue.error", {
           message: "Solo puede llamar el siguiente turno en orden."
         });
@@ -129,12 +135,12 @@ io.on('connection', (socket) => {
       broadCastSnapshot();
   });
 
-  // ==================================================
-  //   Event: Eliminar turno (ej: paciente atendido)
-  // ==================================================
+  // ===============================
+  //   Event: Eliminar turno 
+  // ===============================
 
   socket.on("queue.remove", (id) => {
-    console.log("Eliminando turno: ", id);
+    console.log("Eliminando turno: ", id); 
 
     queue = queue.filter((t) => t.id !== id);
 
@@ -151,7 +157,7 @@ io.on('connection', (socket) => {
   });
 
   // ================
-  //  Dissconected
+  //  Disconnected
   // ================
     socket.on('disconnect', () => {
       console.log('🔴 Cliente desconectado:', socket.id);
