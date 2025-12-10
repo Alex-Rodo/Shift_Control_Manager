@@ -86,36 +86,76 @@ export default function WaitingRoomDisplay({
         <div className='text-sm text-gray-600'>
           Turnos: {filteredQueue.length}
         </div>
-      </header>
+      </header> //
       {/* Ultimo turno atendido con numero grande */}
       {lastCalled && (
         <div className='mb-6 text-center'>
-          <div className='text-4xl font-extrabold text-green-600'>
-            Turno {lastCalled.turnNumber}
+          <div className='text-5xl font-extrabold text-green-600'>
+            T-{String(lastCalled.turnNumber).padStart(3, '0')}
           </div>
-          <div className='text-xl'>
-            {lastCalled.name}
+          <div className='mt-1 text-lg'>
+            {lastCalled.name} -
+            <span className='text-sm text-gray-500'>
+              {lastCalled.specialty}
+            </span>
           </div>
         </div>
       )}
-      <h4 className='font-semibold'>
-        En Espera:
-      </h4>
-      {waiting.map((t) => (
-        <div key={t.id} className='border p-2 mt-2 rounded'>
-          Turno {t.turnNumber} - <b>{t.name}</b>
-        </div>
-      ))}
+
+      <section className='mb-4'>
+        <h4 className='font-semibold'>
+          En Espera:
+        </h4>
+        {waiting.length === 0 && (
+          <div className='text-gray-500 italic mt-2'>
+            No hay turnos en espera.
+          </div>
+        )}
+        {waiting.map((t) => (
+          <div key={t.id} className='border p-2 mt-2 rounded flex justify-between items-center'>
+            <div>
+              <div className='font-medium'>
+                T-{String(t.turnNumber).padStart(3, '0')} -
+                {t.name}
+              </div>
+              <div className='text-sm text-gray-500'>
+                {t.specialty}
+              </div>
+            </div>
+            <div className='text-sm text-gray-600'>
+              {t.status}
+            </div>
+          </div>
+        ))}
+      </section>
       <br />
 
-      <h4 className='font-semibold'>
-        Llamados:
-      </h4>
-      {called.map((t) => (
-        <div key={t.id} className='border p-2 mt-2 rounded bg-green-100'>
-          Turno: {t.turnNumber} - <b>{t.name}</b>
-        </div>
-      ))}
+      <section>
+        <h4 className='font-semibold text-gray-700'>
+          Llamados:
+        </h4>
+        {called.length === 0 &&
+          <div className='text-sm text-gray-500'>
+            No hay turnos llamados.
+          </div>
+        }
+        {called.map((t) => (
+          <div key={t.id} className='border p-2 mt-2 rounded bg-green-50 flex justify-between items-center'>
+            <div>
+              <div className='font-medium'>
+                T-{String(t.turnNumber).padStart(3, '0')} -
+                {t.name}
+              </div>
+              <div className='text-sm text-gray-500'>
+                {t.specialty}
+              </div>
+            </div>
+            <div className='text-sm text-indigo-600 font-semibold'>
+              LLAMADO
+            </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }
