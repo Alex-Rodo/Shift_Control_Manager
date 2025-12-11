@@ -8,17 +8,13 @@ export default function ReceptionPanel() {
 
   function createTurn() {
     if (!patientName.trim()) return alert("Por favor ingresar el nombre del paciente");
-  }
 
-  const handleCreateTurn = () => {
-    if (!patientName) return alert("Por favor ingresar el nombre del paciente");
-
+    // Envia la data minima; el backend asigna id/turnNumber/status
     socket.emit("queue.add", {
-      patientName,
+      patientName: patientName.trim(),
       specialty,
       status: TurnStatus.WAITING,
     });
-
     setPatientName(''); //Limpiar el campo despues de crear el turno
   }
 
@@ -26,7 +22,7 @@ export default function ReceptionPanel() {
     <div style={{ padding: 20, border: "1px solid gray", borderRadius: 8 }}>
       <h2>Recepcion</h2>
       <div>
-        <label>Nombre del paciente</label>
+        <label className='block text-sm text-gray-600'>Nombre del paciente</label>
         <input
           value={patientName}
           onChange={(e) => setPatientName(e.target.value)}
@@ -34,11 +30,11 @@ export default function ReceptionPanel() {
         />
       </div>
       <div>
-        <label>Especialidad</label>
+        <label className='block text-sm text-gray-600'>Especialidad</label>
         <select
           value={specialty}
           onChange={(e) => setSpecialty(e.target.value)}
-          style={{ width: "100%", padding: 6 }}
+          style={{ width: "100% ", padding: 6 }}
         >
           <option>Medicina General</option>
           <option>Pediatria</option>
@@ -49,7 +45,7 @@ export default function ReceptionPanel() {
 
       <button
         onClick={createTurn}
-        style={{marginTop: 10, padding: 10, width: "100%"}}
+        className='w-full bg-blue-600 text-white py-2 rounded'
       >
         Crear Turno
       </button>
