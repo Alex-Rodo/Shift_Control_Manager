@@ -17,7 +17,7 @@ export default function WaitingRoomDisplay({
 
   //Audio cuando llaman un turno
   useEffect(() => {
-    audioRef.current = new Audio("/sounds/turn_called.mp3");
+    audioRef.current = new Audio("/public/audio/ding-47489.mp3");
     audioRef.current.volume = 0.8;
   }, []);
 

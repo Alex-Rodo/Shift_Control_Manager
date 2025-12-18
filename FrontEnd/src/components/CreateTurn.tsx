@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { socket } from "../socket";
+import  socket  from "../socket";
 
 export function CreateTurn() {
     const [name, setName] = useState("");
@@ -7,7 +7,7 @@ export function CreateTurn() {
 
     function addTurn() {
         socket.emit("queue.add", {
-            name,
+            name, 
             specialty,
         });
 
