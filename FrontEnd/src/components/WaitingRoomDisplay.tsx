@@ -22,6 +22,17 @@ export default function WaitingRoomDisplay({
   }, []);
 
   useEffect(() => {
+    socket.on("queue.snapshot", (data) => {
+      console.log("Snapshot received", data);
+      setQueue(data);
+    });
+    return () => {
+      socket.off("queue.snapshot");
+    };
+  }, []);
+
+  useEffect(() => {
+
     function handleSnapshot(data: Turn[]) {
       setQueue(data);
     }

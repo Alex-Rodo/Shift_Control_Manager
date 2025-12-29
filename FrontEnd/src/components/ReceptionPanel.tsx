@@ -4,14 +4,20 @@ import { TurnStatus } from "../types/TurnStatus";
 
 export default function ReceptionPanel() {
   const [patientName, setPatientName] = useState('');
-  const [specialty, setSpecialty] = useState('Medicina General');
+  const [specialty, setSpecialty] = useState('Seleccione la especialidad');
 
   function createTurn() {
-    if (!patientName.trim()) return alert("Por favor ingresar el nombre del paciente");
+    if (!patientName.trim()) 
+      return alert("Por favor ingresar el nombre del paciente");
+
+    if(specialty === 'Seleccione la especialidad'){
+      alert("Por favor seleccionar una especialidad valida");
+      return;
+    }
 
     // Envia la data minima; el backend asigna id/turnNumber/status
     socket.emit("queue.add", {
-      patientName: patientName.trim(),
+      name: patientName,
       specialty,
       status: TurnStatus.WAITING,
     });

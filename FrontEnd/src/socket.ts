@@ -12,7 +12,7 @@ socket.on("connect", () => {
   console.log("✅ Conectado al servidor con ID:", socket.id);
 });
 
-socket.on("disconnect", () => {
+socket.on("disconnect", () => { 
   console.log("❌ Desconectado del servidor");
 });
 
