@@ -91,7 +91,7 @@ io.on('connection', (socket) => {
       status: TurnStatus.WAITING,
       turnNumber: turnCounter++,
     };
-
+    //console.log("Turno creado: ", newTurn);
     queue.push(newTurn);
 
     //Emitir evento a todos
