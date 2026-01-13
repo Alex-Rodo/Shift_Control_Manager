@@ -6,5 +6,4 @@ export interface Turn {
   specialty: string;
   createdAt: number;
   status: TurnStatus;
-  turnNumber: number; 
 }

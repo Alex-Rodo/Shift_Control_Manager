@@ -63,6 +63,7 @@ let turnCounter = 1;
 // =================================
 
 function broadCastSnapshot() {
+  console.log("📢 Enviando snapshot: ", queue);
   io.emit("queue.snapshot", queue);
 }
 

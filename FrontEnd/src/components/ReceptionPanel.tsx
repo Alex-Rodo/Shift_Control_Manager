@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import socket from '../socket';
+import { socket } from '../socket';
 import { TurnStatus } from "../types/TurnStatus";
 
 export default function ReceptionPanel() {
@@ -7,10 +7,10 @@ export default function ReceptionPanel() {
   const [specialty, setSpecialty] = useState('Seleccione la especialidad');
 
   function createTurn() {
-    if (!patientName.trim()) 
+    if (!patientName.trim())
       return alert("Por favor ingresar el nombre del paciente");
 
-    if(specialty === 'Seleccione la especialidad'){
+    if (specialty === 'Seleccione la especialidad') {
       alert("Por favor seleccionar una especialidad valida");
       return;
     }
