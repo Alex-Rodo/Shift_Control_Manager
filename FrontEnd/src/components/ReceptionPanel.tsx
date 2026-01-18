@@ -3,11 +3,11 @@ import { socket } from '../socket';
 import { TurnStatus } from "../types/TurnStatus";
 
 export default function ReceptionPanel() {
-  const [patientName, setPatientName] = useState('');
+  const [name, setName] = useState('');
   const [specialty, setSpecialty] = useState('Seleccione la especialidad');
 
   function createTurn() {
-    if (!patientName.trim())
+    if (!name.trim())
       return alert("Por favor ingresar el nombre del paciente");
 
     if (specialty === 'Seleccione la especialidad') {
@@ -17,11 +17,11 @@ export default function ReceptionPanel() {
 
     // Envia la data minima; el backend asigna id/turnNumber/status
     socket.emit("queue.add", {
-      name: patientName,
+      name,
       specialty,
       status: TurnStatus.WAITING,
     });
-    setPatientName(''); //Limpiar el campo despues de crear el turno
+    setName(''); //Limpiar el campo despues de crear el turno
   }
 
   return (
@@ -30,12 +30,11 @@ export default function ReceptionPanel() {
       <div>
         <label className='block text-sm text-gray-600'>Nombre del paciente</label>
         <input
-          value={patientName}
-          onChange={(e) => setPatientName(e.target.value)}
+          placeholder='Nombre del paciente'
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           style={{ width: "100%", padding: 6, marginBottom: 10 }}
         />
-      </div>
-      <div>
         <label className='block text-sm text-gray-600'>Especialidad</label>
         <select
           value={specialty}

@@ -73,6 +73,6 @@ export default function WaitingRoomDisplay({
       ))}
 
       <audio ref={audioRef} src="/audio/ding-47489.mp3" />
-    </div>
+    </div> 
   );
 }
